@@ -113,6 +113,15 @@
   function clear() {
     outputs = [];
   }
+
+  document.addEventListener("keydown", function(event) {
+  
+  if (event.key == "Enter" && event.shiftKey){
+    run(true);
+  }
+  
+  });
+
 </script>
 
 <div>
