@@ -114,15 +114,16 @@
     outputs = [];
   }
 
-  document.addEventListener("keydown", function(event) {
-  
-  if (event.key == "Enter" && event.shiftKey){
+
+  function RunKeyBind(event){
+    if (event.key == "Enter" && event.shiftKey){
     run(true);
   }
-  
-  });
+  }
 
 </script>
+
+<svelte:window on:keydown={RunKeyBind}/>
 
 <div>
   <div class="top">
