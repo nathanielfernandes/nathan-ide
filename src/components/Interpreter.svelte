@@ -17,6 +17,9 @@
     code_files = value;
   });
 
+  let stdin = "";
+  let stdin_menu = false;
+
   function createBody() {
     let focused;
     let codes = [];
@@ -32,11 +35,17 @@
     let fixed = [{ name: focused.filename, content: focused.content }].concat(
       codes
     );
-    return JSON.stringify({ language: "lisp", version: "2.1.2", files: fixed });
+    return JSON.stringify({
+      language: "lisp",
+      version: "2.1.2",
+      files: fixed,
+      stdin: stdin,
+    });
   }
 
   // let output = "output will appear here...";
-  let last;
+  // let last;
+
   let outputs = [
     {
       header: "output:",
@@ -79,22 +88,9 @@
     outputs = outputs.concat([
       { header: `${focused_tab}:`, content: out, type: type },
     ]);
-
-    // output += `\n\n>> ${focused_tab}:`;
-    // if (res.message === undefined) {
-    //   if (res.run.output.startsWith("\n")) {
-    //     output += res.run.output;
-    //   } else {
-    //     output += "\n" + res.run.output;
-    //   }
-    // } else {
-    //   output += "\nSlow Down! You are being Ratelimited";
-    // }
   }
 
-  // const run = debounce(run_code, 1000);
   let bottom;
-
   const scroll = debounce(() => {
     bottom.scrollIntoView({ behavior: "smooth" });
   }, 200);
@@ -102,28 +98,23 @@
   let promise;
   const refs = [];
   function run(clear) {
+    stdin_menu = false;
     promise = run_code(clear);
     scroll();
-    // refs[refs.length - 1].scrollIntoView({
-    //   behavior: "smooth",
-    //   alightToTop: true,
-    // });
   }
 
   function clear() {
     outputs = [];
   }
 
-
-  function RunKeyBind(event){
-    if (event.key == "Enter" && event.shiftKey){
-    run(true);
+  function RunKeyBind(event) {
+    if (event.key == "Enter" && event.ctrlKey) {
+      run(false);
+    }
   }
-  }
-
 </script>
 
-<svelte:window on:keydown={RunKeyBind}/>
+<svelte:window on:keydown={RunKeyBind} />
 
 <div>
   <div class="top">
@@ -148,34 +139,60 @@
     <div style="color:#fe4444;" class="tool" on:click={clear}>
       <i class="fas fa-sync-alt" /> Clear
     </div>
+    <div
+      style="color:white"
+      class={`tool ${stdin_menu ? "toggled" : ""}`}
+      on:click={() => {
+        stdin_menu = !stdin_menu;
+      }}
+    >
+      <i class="fas fa-keyboard" /> Stdin
+    </div>
+    {#if stdin_menu}
+      <p style="margin-left: 1rem; color: white">editing stdin</p>
+    {/if}
   </div>
-  <div class="code" id="output-container">
-    <div class="inner">
-      <code class="code inner" style={`font-size: ${$fontsize}px`}>
-        {#each outputs as { header, content, type }, i}
-          <div bind:this={refs[i]} class="code-out">
-            <span class={`header ${type}`}>
-              {i}
-              <i class="fas fa-chevron-right" /><i
-                class="fas fa-chevron-right"
-              />
-              {header}
-            </span>
-            <span>
-              {content}
-            </span>
+  {#if !stdin_menu}
+    <div class="code" id="output-container">
+      <div class="inner">
+        <code class="code inner" style={`font-size: ${$fontsize}px`}>
+          {#each outputs as { header, content, type }, i}
+            <div bind:this={refs[i]} class="code-out">
+              <span class={`header ${type}`}>
+                {i}
+                <i class="fas fa-chevron-right" /><i
+                  class="fas fa-chevron-right"
+                />
+                {header}
+              </span>
+              <span>
+                {content}
+              </span>
+            </div>
+          {/each}
+          <div bind:this={bottom}>
+            {#await promise}
+              running...
+            {:catch error}
+              {error.message}
+            {/await}
           </div>
-        {/each}
-        <div bind:this={bottom}>
-          {#await promise}
-            running...
-          {:catch error}
-            {error.message}
-          {/await}
-        </div>
+        </code>
+      </div>
+    </div>
+  {:else}
+    <div class="stdin">
+      <code>
+        <textarea
+          style={`font-size: ${$fontsize}px`}
+          spellcheck="false"
+          placeholder="Enter multiple values in separate lines..."
+          class="enter"
+          bind:value={stdin}
+        />
       </code>
     </div>
-  </div>
+  {/if}
   <div class="bottom">Lisp v2.1.2 &nbsp; {focused_tab}</div>
 </div>
 
@@ -209,6 +226,10 @@
 
   .tool:active {
     background-color: rgb(154, 154, 154);
+  }
+
+  .toggled {
+    background-color: rgb(122, 122, 122);
   }
 
   .top {
@@ -257,11 +278,26 @@
 
   #output-container {
     width: 100%;
-    color: black;
+    /* color: black; */
     height: 85vh;
     padding: 0;
     overflow-wrap: break-word;
     overflow-x: hidden;
     overflow-y: scroll;
+  }
+
+  .stdin {
+    width: 100%;
+    height: 85vh;
+  }
+
+  .stdin .enter {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    border: none;
+    outline: none;
+    background-color: rgb(29, 29, 29);
+    color: white;
   }
 </style>
