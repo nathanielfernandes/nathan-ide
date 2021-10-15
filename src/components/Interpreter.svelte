@@ -1,10 +1,11 @@
 <script>
+  import { createEventDispatcher } from "svelte";
   import { fontsize, tabs, files } from "./stores.js";
   import { debounce } from "./helpers.js";
 
-  const ERROR = /\{\d+\}>:\s(.*)\s/gimu;
+  const dispatch = createEventDispatcher();
 
-  let focused_tab = "Common Lisp Interpreter";
+  let focused_tab = "Piston Interpreter";
   tabs.subscribe((value) => {
     let found = value.find((t) => t.focused);
     if (found !== undefined) {
@@ -35,9 +36,11 @@
     let fixed = [{ name: focused.filename, content: focused.content }].concat(
       codes
     );
+
+    let [_name, ext] = focused.filename.split(".");
     return JSON.stringify({
-      language: "lisp",
-      version: "2.1.2",
+      language: ext,
+      version: "*",
       files: fixed,
       stdin: stdin,
     });
@@ -55,6 +58,7 @@
   ];
 
   async function run_code(do_clear) {
+    dispatch("execute");
     if (do_clear) {
       clear();
     }
@@ -72,17 +76,10 @@
       if (out.length === 0) {
         type = "warning";
       } else {
-        if (
-          Array.from(out.matchAll(ERROR)).length > 0 ||
-          out.includes("fatal error encountered in SBCL")
-        ) {
-          type = "error";
-        } else {
-          type = "ok";
-        }
+        type = res.run.stderr === "" ? "ok" : "error";
       }
     } else {
-      out = "Slow Down! You are being Ratelimited";
+      out = res.message;
       type = "warning";
     }
     outputs = outputs.concat([
@@ -116,7 +113,7 @@
 
 <svelte:window on:keydown={RunKeyBind} />
 
-<div>
+<div class="everythang">
   <div class="top">
     <div
       style="color:#36f669;"
@@ -193,10 +190,13 @@
       </code>
     </div>
   {/if}
-  <div class="bottom">Lisp v2.1.2 &nbsp; {focused_tab}</div>
+  <div class="bottom">{focused_tab}</div>
 </div>
 
 <style>
+  .everythang {
+    height: 100%;
+  }
   .header {
     font-weight: 900;
   }
@@ -234,7 +234,7 @@
 
   .top {
     align-items: center;
-    height: 34px;
+    height: 2rem;
     display: flex;
     background-color: rgb(44, 44, 44);
   }
@@ -245,7 +245,7 @@
     display: flex;
     align-items: center;
     color: rgb(110, 110, 110);
-    height: 34px;
+    height: 2rem;
     background-color: rgb(44, 44, 44);
   }
 
@@ -270,6 +270,8 @@
     flex-direction: column;
     margin-bottom: 1rem;
     transition: all 100ms;
+    padding: 0.5rem;
+    border-radius: 10px;
   }
 
   .code-out:hover {
@@ -279,16 +281,18 @@
   #output-container {
     width: 100%;
     /* color: black; */
-    height: 85vh;
+    height: 100%;
     padding: 0;
     overflow-wrap: break-word;
     overflow-x: hidden;
     overflow-y: scroll;
+    height: 80vh;
   }
 
   .stdin {
     width: 100%;
-    height: 85vh;
+    height: 100%;
+    height: 80vh;
   }
 
   .stdin .enter {

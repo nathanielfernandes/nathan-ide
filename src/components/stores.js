@@ -1,6 +1,5 @@
 import { writable, readable } from 'svelte/store';
 
-// localStorage.clear();
 
 const firstVisit = ((localStorage.getItem("visit") || "0") == "0");
 localStorage.setItem("visit", "1");
@@ -10,7 +9,7 @@ const storedFontSize = localStorage.getItem("fontsize") || 15;
 let storedFiles = localStorage.getItem("editor_tabs") 
 
 if (storedFiles === null) {
-    storedFiles = [{filename: "file1.lisp", content:";; edit this: file1.lisp"}, ];
+    storedFiles = [{filename: "newfile1", content:""}, ];
 } else {
     storedFiles = JSON.parse(storedFiles);
 }
