@@ -1,5 +1,12 @@
 <script>
-  import { theme, fontsize, tabs, files } from "./stores.js";
+  import {
+    theme,
+    fontsize,
+    tabs,
+    files,
+    accent,
+    accentColors,
+  } from "./stores.js";
   import Tab from "./Tab.svelte";
   import Interpreter from "./Interpreter.svelte";
   import defaults from "./data/editor_defaults.json";
@@ -224,6 +231,16 @@
   onMount(() => {
     showInterp = true;
   });
+
+  $: accent_color = $accentColors[$accent];
+
+  let cycle_color = () => {
+    if ($accent >= 6) {
+      $accent = 0;
+    } else {
+      $accent++;
+    }
+  };
 </script>
 
 <main>
@@ -265,7 +282,9 @@
           multiple
         />
       </div>
-
+      <div
+        style={`height:3px; background-color:${accent_color}; transition: all 100ms`}
+      />
       <div class="editor-container">
         <div id="editor" />
       </div>
@@ -278,6 +297,13 @@
           on:click={() => {
             toLocalStorage();
           }}
+        />
+
+        <i
+          title="accent color"
+          class="fas fa-palette"
+          on:click={cycle_color}
+          style="{`color:${accent_color}`};"
         />
 
         <label>
@@ -371,6 +397,18 @@
 
     /* margin: 0 auto; */
   }
+  .fa-palette {
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  .fa-palette:hover {
+    transform: scale(1.3);
+  }
+
+  .fa-palette:active {
+    transform: scale(1.2);
+  }
 
   .fa-save {
     margin: 0 1rem;
@@ -450,7 +488,8 @@
     /* height: 85vh; */
     /* overflow: hidden; */
     /* width: 40%; */
-    /* border-radius: 20px; */
+    border-radius: 10px;
+    overflow: hidden;
     box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.485);
   }
   .hide {

@@ -69,13 +69,13 @@
   <div>
     <Editor />
   </div>
-  <div class="footer">
+  <!-- <div class="footer">
     <p class="love">
-      <!-- Built with <a href="https://svelte.dev/" target="_blank">Svelte</a>,
+      Built with <a href="https://svelte.dev/" target="_blank">Svelte</a>,
       <a href="https://ace.c9.io/" target="_blank">Ace</a>
       &
       <a href="https://github.com/engineer-man/piston" target="_blank">Piston</a
-      > <br />  -->
+      > <br /> 
       Made with love by
       <a class="link" href="https://github.com/nathanielfernandes"
         >Nathaniel Fernandes</a
@@ -83,7 +83,7 @@
       &mdash; fork or suggest edits on
       <a class="link" href="https://github.com/nathanielfernandes">GitHub</a>
     </p>
-  </div>
+  </div> -->
 </main>
 
 <svelte:head>

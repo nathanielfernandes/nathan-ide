@@ -38,6 +38,7 @@
     );
 
     let [_name, ext] = focused.filename.split(".");
+
     return JSON.stringify({
       language: ext,
       version: "*",
@@ -272,6 +273,10 @@
     transition: all 100ms;
     padding: 0.5rem;
     border-radius: 10px;
+  }
+
+  .code::-webkit-scrollbar {
+    display: none;
   }
 
   .code-out:hover {

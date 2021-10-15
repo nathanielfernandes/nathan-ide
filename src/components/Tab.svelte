@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { theme } from "./stores.js";
+  import { theme, accent, accentColors } from "./stores.js";
   const dispatch = createEventDispatcher();
 
   export let filename;
@@ -43,6 +43,7 @@
 <div
   bind:this={tab}
   class={`ace-${$theme} ${focused ? "focused" : ""}`}
+  style={focused ? `background-color: ${$accentColors[$accent]}` : ""}
   on:click={focus}
 >
   <i class="fas fa-file-code" on:click={focus} />
@@ -86,7 +87,7 @@
     color: white; */
     /* margin: 0 0rem 0 0; */
     padding: 0.5rem 1rem;
-    /* border-radius: 4px 4px 0px 0px; */
+    /* border-radius: 5px 5px 0px 0px; */
     transition: all 100ms;
     /* width: 160px; */
     /* max-width: 160px; */
@@ -102,7 +103,7 @@
 
   .focused {
     /* filter: brightness(150%); */
-    background-color: #36f669;
+    /* background-color: #36f669; */
     color: rgb(42, 42, 42);
     /* box-shadow: 0px 13px 0px 0px  */
   }
