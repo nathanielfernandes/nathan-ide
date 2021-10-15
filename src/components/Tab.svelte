@@ -9,6 +9,8 @@
 
   export let focused;
 
+  const undo_manager = new ace.UndoManager();
+
   let tab;
   if (focused) {
     focus();
@@ -18,6 +20,7 @@
     // console.log(`focused ${filename}`);
     dispatch("focused", { filename });
     editor.setSession(session);
+    session.setUndoManager(undo_manager);
 
     if (tab !== undefined) {
       tab.scrollIntoView({ behavior: "smooth" });
@@ -61,16 +64,17 @@
   .fa-file-code {
     font-size: 1rem;
     margin-right: 0.5rem;
+    cursor: grab;
   }
 
   .fa-times {
-    font-size: 0.8rem;
+    font-size: 1rem;
     transition: all 100ms;
   }
 
   .fa-times:hover {
     color: #fe4444;
-    font-size: 1rem;
+    transform: scale(1.4);
   }
 
   div {
@@ -84,6 +88,8 @@
     padding: 0.5rem 1rem;
     /* border-radius: 4px 4px 0px 0px; */
     transition: all 100ms;
+    /* width: 160px; */
+    /* max-width: 160px; */
   }
 
   div:hover {

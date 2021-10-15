@@ -18,11 +18,7 @@
     <div transition:fly={{ y: 200, duration: 1000 }} class="first-visit">
       <h1 class="first-header">👋 hey there,</h1>
       <p>
-        This website aims to be an online <a
-          class="link"
-          href="https://common-lisp.net/">Common Lisp</a
-        >
-        IDE.
+        This website aims to be an online IDE.
         <br />
         <br />
         It was built using <a class="link" href="https://svelte.dev/">Svelte</a>
@@ -37,9 +33,7 @@
         browser or turning off your computer will erase any saved code!)
         <br />
         <br />
-        I made this IDE for fun and because of the difficult setup process for lisp
-        on different OS's. Although it is much easier to use this IDE, you will be
-        missing out on the many features emacs provides.
+        I made this IDE for fun.
         <br />
         <br />
         <b>Disclaimer</b>
@@ -53,7 +47,7 @@
         code produced using this IDE.
         <br />
         <br />
-        Other than that I hope this IDE helps you strengthen your lisp!
+        Other than that I hope this IDE helps you strengthen your skills!
         <br />
         <br />
         If you have any questions/concerns you can message me on discord at
@@ -72,12 +66,19 @@
       </button>
     </div>
   {/if}
-  <Editor />
+  <div>
+    <Editor />
+  </div>
   <div class="footer">
     <p class="love">
-      Made with love by <a
-        class="link"
-        href="https://github.com/nathanielfernandes">Nathaniel Fernandes</a
+      <!-- Built with <a href="https://svelte.dev/" target="_blank">Svelte</a>,
+      <a href="https://ace.c9.io/" target="_blank">Ace</a>
+      &
+      <a href="https://github.com/engineer-man/piston" target="_blank">Piston</a
+      > <br />  -->
+      Made with love by
+      <a class="link" href="https://github.com/nathanielfernandes"
+        >Nathaniel Fernandes</a
       >
       &mdash; fork or suggest edits on
       <a class="link" href="https://github.com/nathanielfernandes">GitHub</a>
@@ -96,10 +97,10 @@
   main {
     padding: 0;
     margin: 0;
+    height: 100vh;
   }
 
   .first-visit {
-    position: fixed;
     position: fixed;
     width: 550px;
     height: 600px;

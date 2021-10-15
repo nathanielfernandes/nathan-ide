@@ -1,9 +1,10 @@
 <script>
   import { theme, fontsize, tabs, files } from "./stores.js";
-
   import Tab from "./Tab.svelte";
   import Interpreter from "./Interpreter.svelte";
   import defaults from "./data/editor_defaults.json";
+  import { fly } from "svelte/transition";
+  import { onMount } from "svelte";
 
   import { debounce } from "./helpers.js";
 
@@ -23,6 +24,7 @@
   };
 
   let editor;
+  let saved = false;
 
   let session_theme = $theme;
   let session_fontsize = Number($fontsize);
@@ -43,7 +45,10 @@
 
   function named_tab(name, contents) {
     let session = new ace.EditSession(contents);
-    session.setMode("ace/mode/lisp");
+
+    let mode = aceModeList.getModeForPath(name);
+    session.setMode(mode.mode);
+
     tabs.update((t) =>
       t.concat([
         {
@@ -60,9 +65,9 @@
   }
 
   function new_tab() {
-    let fn = `file${$tabs.length + 1}.lisp`;
+    let fn = `newfile${$tabs.length + 1}`;
 
-    let session = new ace.EditSession(`;; edit this: ${fn}`);
+    let session = new ace.EditSession("");
     session.setMode("ace/mode/lisp");
 
     tabs.update((t) =>
@@ -75,8 +80,8 @@
       ])
     );
 
-    refocus({ detail: { filename: fn } });
     fix_names();
+    refocus({ detail: { filename: fn } });
     save();
   }
 
@@ -102,8 +107,8 @@
     if ($tabs.length > 1) {
       const { filename } = event.detail;
       tabs.update((t) => t.filter((t) => t.filename !== filename));
-      refocus({ detail: { filename: $tabs[0].filename } });
-      save();
+      refocus({ detail: { filename: $tabs[$tabs.length - 1].filename } });
+      toLocalStorage();
     }
   }
 
@@ -114,7 +119,8 @@
     tabs.set(
       $tabs.map((t) => {
         if (checked.includes(t.filename)) {
-          t.filename = `${t.filename.replace(".lisp", "")}_${i}.lisp`;
+          let [name, ext] = t.filename.split(".");
+          t.filename = `${name}_${i}${ext === undefined ? "" : `.${ext}`}`;
           i++;
         }
         checked.push(t.filename);
@@ -131,6 +137,8 @@
       $tabs.map((t) => {
         if (t.focused) {
           t.filename = filename;
+          let mode = aceModeList.getModeForPath(t.filename);
+          t.session.setMode(mode.mode);
         }
         return t;
       })
@@ -140,7 +148,10 @@
     save();
   }
 
+  let aceModeList;
   function setup_ace() {
+    aceModeList = ace.require("ace/ext/modelist");
+
     ace.config.set(
       "basePath",
       "https://cdn.jsdelivr.net/npm/ace-builds@1.4.3/src-noconflict/"
@@ -151,6 +162,13 @@
     updateFontSize();
     editor.on("change", save);
 
+    editor.setOptions({
+      enableBasicAutocompletion: true,
+      enableSnippets: true,
+      enableLiveAutocompletion: true,
+      highlightActiveLine: false,
+    });
+
     $files.forEach((f) => {
       named_tab(f.filename, f.content);
     });
@@ -160,28 +178,52 @@
     // console.log("saved");
     let temp_files = [];
 
+    let fn;
     let focused_session;
     $tabs.forEach((t) => {
       if (t.focused) {
         focused_session = t.session;
+        fn = t.filename;
       }
       editor.setSession(t.session);
       temp_files.push({ filename: t.filename, content: editor.getValue() });
     });
     editor.setSession(focused_session);
     files.set(temp_files);
+    saved = true;
+    return fn;
   }
 
-  function download(filename, text) {
-    var pom = document.createElement("a");
-    pom.setAttribute(
-      "href",
-      "data:text/plain;charset=utf-8," + encodeURIComponent(text)
-    );
-    pom.setAttribute("download", filename);
+  function saveStaticDataToFile() {
+    let fn = toLocalStorage();
+    var blob = new Blob([editor.getValue()], {
+      type: "text/plain;charset=utf-8",
+    });
+
+    saveAs(blob, fn);
   }
 
-  const save = debounce(toLocalStorage, 1000);
+  let keyCode;
+
+  function handleKeydown(event) {
+    if ((keyCode === 91 || keyCode === 17) && event.keyCode === 83) {
+      event.preventDefault();
+      saveStaticDataToFile();
+    }
+
+    keyCode = event.keyCode;
+  }
+
+  const deSave = debounce(toLocalStorage, 2000);
+  const save = () => {
+    saved = false;
+    deSave();
+  };
+
+  let showInterp = false;
+  onMount(() => {
+    showInterp = true;
+  });
 </script>
 
 <main>
@@ -199,12 +241,14 @@
             on:namechange={update_name}
           />
         {/each}
-        <div class={"new_tab " + theme_class} on:click={new_tab}>
+        <div class="new_tab" on:click={new_tab}>
           <i class="fas fa-plus-square" />
         </div>
+        <!-- class={"new_tab " + theme_class} -->
+
         <div
           bind:this={endTab}
-          class={"new_tab " + theme_class}
+          class="new_tab"
           on:click={() => {
             fileinput.click();
           }}
@@ -215,7 +259,7 @@
         <input
           style="display:none"
           type="file"
-          accept=".lisp"
+          accept="*"
           on:change={(e) => onFileSelected(e)}
           bind:this={fileinput}
           multiple
@@ -225,41 +269,96 @@
       <div class="editor-container">
         <div id="editor" />
       </div>
+
       <div id="options" class={theme_class}>
-        <div class="option">theme:</div>
-        <select
-          class="option"
-          bind:value={session_theme}
-          on:change={updateTheme}
-        >
-          {#each defaults.all_themes as t}
-            <option value={t}>
-              {t}
-            </option>
-          {/each}
-        </select>
-        <br />
-        <div class="option">fontsize:</div>
-        <input
-          class="option"
-          type="number"
-          bind:value={session_fontsize}
-          on:change={updateFontSize}
+        <i
+          title="This is a save indicator that shows when your work is saved to the browser."
+          class="fas fa-save"
+          style={`color: ${saved ? "#36f669" : "#ffb406"};`}
+          on:click={() => {
+            toLocalStorage();
+          }}
         />
+
+        <label>
+          Theme:
+          <select
+            class="option"
+            bind:value={session_theme}
+            on:change={updateTheme}
+          >
+            {#each defaults.all_themes as t}
+              <option value={t}>
+                {t}
+              </option>
+            {/each}
+          </select>
+        </label>
+
+        <label
+          >Font-size:
+          <input
+            class="option nn"
+            type="number"
+            bind:value={session_fontsize}
+            on:change={updateFontSize}
+          />
+        </label>
+
+        <div>
+          Use <b>Ctrl/Cmd + S</b> to save files
+        </div>
+
+        <div class="love">
+          Made with love by
+          <a class="link" href="https://github.com/nathanielfernandes"
+            >Nathaniel Fernandes</a
+          >
+          &mdash; fork or suggest edits on
+          <a class="link" href="https://github.com/nathanielfernandes">GitHub</a
+          >
+        </div>
       </div>
     </div>
 
-    <div class="interpreter">
-      <Interpreter />
-    </div>
+    <!-- class={`interpreter ${showInterp ? "" : "hide"}`} -->
+    {#if showInterp}
+      <div transition:fly={{ x: 500, duration: 500 }} class="interpreter">
+        <Interpreter
+          on:execute={() => {
+            toLocalStorage();
+          }}
+        />
+      </div>
+    {/if}
+
+    {#if !showInterp}
+      <i
+        class="fas fa-chevron-left sizer"
+        on:click={() => {
+          showInterp = !showInterp;
+        }}
+      />
+    {:else}
+      <i
+        class="fas fa-chevron-right sizer"
+        on:click={() => {
+          showInterp = !showInterp;
+        }}
+      />
+    {/if}
   </div>
 </main>
 
 <svelte:head>
   <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.js"></script>
+  <script
     on:load={setup_ace}
-    src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js"></script>
+    src="https://cdn.jsdelivr.net/combine/npm/ace-min-noconflict@1.1.9,npm/ace-min-noconflict@1.1.9/ext-language_tools.min.js,npm/ace-min-noconflict@1.1.9/ext-modelist.min.js,npm/ace-min-noconflict@1.1.9/mode-sh.min.js"></script>
 </svelte:head>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <style>
   main {
@@ -268,7 +367,50 @@
     padding: 0;
     margin: 0;
     height: 100%;
+    right: 1rem;
+
     /* margin: 0 auto; */
+  }
+
+  .fa-save {
+    margin: 0 1rem;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 100ms;
+  }
+
+  .fa-save:hover {
+    transform: scale(1.3);
+  }
+
+  .fa-save:active {
+    transform: scale(1.2);
+  }
+  .fa-chevron-left {
+    color: #36f669;
+  }
+
+  .fa-chevron-right {
+    color: #ff3030;
+  }
+
+  .sizer {
+    top: 3.3rem;
+    right: 1.5rem;
+    font-size: 1.5rem;
+
+    position: absolute;
+    z-index: 10;
+    transition: all 100ms;
+  }
+
+  .sizer:hover {
+    cursor: pointer;
+    transform: scale(1.3);
+  }
+
+  .sizer:active {
+    transform: scale(1.2);
   }
 
   .editor-container {
@@ -276,30 +418,50 @@
     /* border-radius: 0px 0px 8px 8px; */
     /* margin: 0.1rem; */
     width: 100%;
-    height: 85vh;
+    height: 100%;
+    /* height: 90vh; */
     /* width: 100%; */
     /* height: 450px; */
     display: inline-block;
-    position: relative;
+    position: fixed;
     overflow: hidden;
     padding: 0px;
     margin: 0px;
   }
 
   .ace {
-    width: 60%;
+    width: 100%;
+    height: 100%;
+
     /* padding: 0.2rem; */
   }
 
+  .isHidden {
+    width: 100%;
+  }
+
   .interpreter {
-    width: 40%;
+    top: 3rem;
+    right: 1rem;
+    position: fixed;
+    z-index: 2;
+    /* padding: 1rem; */
+    width: 45%;
+    /* height: 85vh; */
+    /* overflow: hidden; */
+    /* width: 40%; */
+    /* border-radius: 20px; */
+    box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.485);
+  }
+  .hide {
+    display: none;
   }
 
   .tabs {
     overflow-y: auto;
     overflow-x: scroll;
     flex-wrap: nowrap;
-    height: 34px;
+    height: 2rem;
     width: 100%;
     padding: 0;
     margin: 0 0;
@@ -308,16 +470,17 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
     -webkit-overflow-scrolling: touch;
+    background-color: rgba(0, 0, 0, 0.267);
   }
   .tabs::-webkit-scrollbar {
     display: none;
   }
 
-  .both {
+  /* .both {
     width: 100%;
     display: flex;
     flex-direction: row;
-  }
+  } */
 
   #editor {
     top: 0;
@@ -340,10 +503,12 @@
 
   .new_tab:hover {
     color: #36f669;
+    transform: scale(1.3);
   }
 
   .new_tab:active {
-    filter: brightness(200%);
+    color: rgb(46, 209, 89);
+    transform: scale(1.2);
   }
 
   #options {
@@ -352,15 +517,41 @@
     margin: 0;
     align-items: center;
     display: flex;
-    filter: brightness(80%);
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    z-index: 25;
+    background-color: rgba(0, 0, 0, 0.267);
+    white-space: nowrap;
   }
 
+  label {
+    padding: 0rem 0.5rem;
+  }
   .option {
-    padding: 0.3rem 1rem;
     background-color: inherit;
     color: inherit;
     border: none;
     margin: 0;
     user-select: none;
+    width: 100px;
+  }
+
+  .nn {
+    width: 50px;
+  }
+
+  .love {
+    margin-left: 2rem;
+    color: #5b5b5b;
+  }
+
+  .link {
+    text-decoration: none;
+    transition: all 100ms;
+  }
+
+  .link:hover {
+    color: rgb(0, 162, 255);
   }
 </style>
