@@ -188,29 +188,7 @@
 
   let side_bar_width = 180;
 
-  let outputs: Response[] = [
-    {
-      group_name: "Group 1",
-      tab_name: "main.py",
-      output: "Hello world!\n",
-      language: "python",
-      result: Result.Success,
-    },
-    {
-      group_name: "Group 1",
-      tab_name: "main.py",
-      output: "Hello world!\n",
-      language: "python",
-      result: Result.Success,
-    },
-    {
-      group_name: "Group 1",
-      tab_name: "main.py",
-      output: "Hello world!\n",
-      language: "python",
-      result: Result.Success,
-    },
-  ];
+  let outputs: Response[] = [];
 
   let bottom: HTMLDivElement;
   onMount(() => {
