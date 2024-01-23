@@ -6,7 +6,7 @@
 </script>
 
 <script lang="ts">
-  import { slide } from "svelte/transition";
+  import { slide, fade } from "svelte/transition";
 
   import {
     theme,
@@ -392,7 +392,7 @@
 
             <div class="overflow-y-scroll pr-2">
               {#each outputs as { group_name, tab_name, output, language, result }}
-                <div class="mb-4">
+                <div class="mb-4" transition:fade={{ duration: 100 }}>
                   <div
                     class="text-sm flex items-center space-x-2 font-bold opacity-70 mb-0.5 ml-0.5"
                   >
